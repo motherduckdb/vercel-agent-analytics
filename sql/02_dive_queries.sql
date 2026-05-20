@@ -31,6 +31,7 @@ ORDER BY minute, category;
 -- Top 20 AI agents, last 24 hours
 ---------------------------------------------------------------------
 SELECT
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
     ai_name,
     ai_category,
     COUNT(*) AS requests,
@@ -44,9 +45,26 @@ ORDER BY requests DESC
 LIMIT 20;
 
 ---------------------------------------------------------------------
+-- AI traffic by Vercel project, last 24 hours
+---------------------------------------------------------------------
+SELECT
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
+    project_id,
+    COUNT(*) AS total_requests,
+    SUM(CASE WHEN ai_category IS NOT NULL THEN 1 ELSE 0 END) AS ai_requests,
+    SUM(CASE WHEN ai_category = 'crawler'      THEN 1 ELSE 0 END) AS crawler,
+    SUM(CASE WHEN ai_category = 'agent'        THEN 1 ELSE 0 END) AS agent,
+    SUM(CASE WHEN ai_category = 'human_via_ai' THEN 1 ELSE 0 END) AS human_via_ai
+FROM raw.vercel_request_logs
+WHERE event_ts >= now() - INTERVAL 24 HOUR
+GROUP BY ALL
+ORDER BY ai_requests DESC;
+
+---------------------------------------------------------------------
 -- Humans arriving via AI tools (referer match), last 24h
 ---------------------------------------------------------------------
 SELECT
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
     ai_name AS ai_source,
     host,
     COUNT(*) AS sessions_estimate
@@ -60,6 +78,7 @@ ORDER BY sessions_estimate DESC;
 -- 404s hit by crawlers: content they looked for and did not find
 ---------------------------------------------------------------------
 SELECT
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
     path,
     ai_name,
     COUNT(*) AS misses
@@ -76,6 +95,7 @@ LIMIT 50;
 ---------------------------------------------------------------------
 SELECT
     date_trunc('day', event_ts) AS day,
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
     SUM(CASE WHEN ai_category IS NOT NULL THEN 1 ELSE 0 END) * 1.0
         / NULLIF(COUNT(*), 0) AS ai_share,
     COUNT(*) AS total_requests
@@ -88,6 +108,7 @@ ORDER BY day;
 -- Top pages by AI category, last 24h
 ---------------------------------------------------------------------
 SELECT
+    COALESCE(project_name, project_id, host, 'unknown') AS project,
     path,
     SUM(CASE WHEN ai_category = 'crawler'      THEN 1 ELSE 0 END) AS crawler,
     SUM(CASE WHEN ai_category = 'agent'        THEN 1 ELSE 0 END) AS agent,

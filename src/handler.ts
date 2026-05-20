@@ -1,10 +1,10 @@
-import { verifyVercelSignature } from "./signature.js";
+import { verifyVercelSignatureWithSecrets } from "./signature.js";
 import { classify } from "./classify.js";
 import { insertRows, type LogRow } from "./db.js";
 
-const DRAIN_SECRET = process.env.VERCEL_DRAIN_SECRET;
-if (!DRAIN_SECRET) {
-  throw new Error("VERCEL_DRAIN_SECRET is required");
+const DRAIN_SECRETS = resolveDrainSecrets();
+if (DRAIN_SECRETS.length === 0) {
+  throw new Error("VERCEL_DRAIN_SECRET or VERCEL_DRAIN_SECRETS is required");
 }
 
 const IGNORED_PATH_EXTENSIONS = new Set([
@@ -44,7 +44,7 @@ export async function handleDrain(
   rawBody: string,
   signature: string | undefined
 ): Promise<HandlerResult> {
-  if (!verifyVercelSignature(rawBody, signature, DRAIN_SECRET!)) {
+  if (!verifyVercelSignatureWithSecrets(rawBody, signature, DRAIN_SECRETS)) {
     return { status: 401, body: "invalid signature" };
   }
 
@@ -106,6 +106,7 @@ function parseAndClassify(body: string): LogRow[] {
       event_ts: eventTs,
       event_hour: new Date(Math.floor(eventTs.getTime() / 3_600_000) * 3_600_000),
       project_id: asString(line.projectId),
+      project_name: asString(line.projectName),
       deployment_id: asString(line.deploymentId),
       source: asString(line.source),
       host: pickString(line, ["proxy.host", "host"]),
@@ -222,4 +223,16 @@ function anonymizeIp(ip: string | null): string | null {
   }
 
   return `${octets[0]}.${octets[1]}.${octets[2]}.0`;
+}
+
+function resolveDrainSecrets(): string[] {
+  const secrets = [
+    process.env.VERCEL_DRAIN_SECRET,
+    process.env.VERCEL_DRAIN_SECRETS,
+  ]
+    .flatMap((value) => value?.split(/[\n,]/) ?? [])
+    .map((value) => value.trim())
+    .filter((value): value is string => value.length > 0);
+
+  return [...new Set(secrets)];
 }

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS raw.vercel_request_logs (
     event_ts        TIMESTAMP,    -- timestamp from the Vercel payload
     event_hour      TIMESTAMP,    -- date_trunc('hour', event_ts), handy for pruning
     project_id      VARCHAR,
+    project_name    VARCHAR,
     deployment_id   VARCHAR,
     source          VARCHAR,      -- edge, lambda, build, static, ...
     host            VARCHAR,
@@ -34,6 +35,9 @@ CREATE TABLE IF NOT EXISTS raw.vercel_request_logs (
     ai_name         VARCHAR,      -- matched pattern label, e.g. 'GPTBot'
     raw             JSON          -- full original payload, for replaying classification
 );
+
+ALTER TABLE raw.vercel_request_logs
+ADD COLUMN IF NOT EXISTS project_name VARCHAR;
 
 -- Convenience view for AI-only traffic.
 CREATE OR REPLACE VIEW raw.ai_requests AS

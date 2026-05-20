@@ -121,8 +121,9 @@
       <header>
         <h1>Vercel Agent Analytics</h1>
         <p class="lede">
-          This deployment is ready to receive Vercel Log Drain batches, classify
-          AI traffic, and write the results to MotherDuck.
+          This collector is ready. Connect Log Drains from one or more Vercel
+          projects to <code>/api/drain</code> to classify AI traffic and write
+          the results to MotherDuck.
         </p>
       </header>
 
@@ -136,8 +137,8 @@
           <code>NDJSON</code>
         </div>
         <div>
-          <span class="label">Required secret</span>
-          <code>VERCEL_DRAIN_SECRET</code>
+          <span class="label">Secrets</span>
+          <code>VERCEL_DRAIN_SECRET(S)</code>
         </div>
       </section>
 

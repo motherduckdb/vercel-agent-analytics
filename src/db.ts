@@ -20,6 +20,30 @@ process.env.HOME = HOME;
 // Fully qualified target, escaped to survive schema/table names with unusual
 // characters. Built once; env vars are read at cold start.
 const TARGET = [DATABASE, SCHEMA, TABLE].map(quoteIdent).join(".");
+const INSERT_COLUMNS = [
+  "event_id",
+  "received_at",
+  "event_ts",
+  "event_hour",
+  "project_id",
+  "project_name",
+  "deployment_id",
+  "source",
+  "host",
+  "path",
+  "method",
+  "status_code",
+  "user_agent",
+  "referer",
+  "client_ip",
+  "region",
+  "request_id",
+  "ai_category",
+  "ai_name",
+  "raw",
+]
+  .map(quoteIdent)
+  .join(", ");
 
 // Module-scoped so warm invocations reuse the MotherDuck connection.
 // First invocation pays a ~500 ms-1 s cold start while the extension loads.
@@ -61,6 +85,7 @@ async function ensureSchema(conn: DuckDBConnection): Promise<void> {
       event_ts        TIMESTAMP,
       event_hour      TIMESTAMP,
       project_id      VARCHAR,
+      project_name    VARCHAR,
       deployment_id   VARCHAR,
       source          VARCHAR,
       host            VARCHAR,
@@ -78,6 +103,10 @@ async function ensureSchema(conn: DuckDBConnection): Promise<void> {
     )
   `);
   await conn.run(`
+    ALTER TABLE ${db}.${schema}.${table}
+    ADD COLUMN IF NOT EXISTS project_name VARCHAR
+  `);
+  await conn.run(`
     CREATE OR REPLACE VIEW ${db}.${schema}."ai_requests" AS
     SELECT * FROM ${db}.${schema}.${table} WHERE ai_category IS NOT NULL
   `);
@@ -89,6 +118,7 @@ export interface LogRow {
   event_ts: Date;
   event_hour: Date;
   project_id: string | null;
+  project_name: string | null;
   deployment_id: string | null;
   source: string | null;
   host: string | null;
@@ -123,6 +153,7 @@ export async function insertRows(rows: LogRow[]): Promise<void> {
         sqlTs(r.event_ts),
         sqlTs(r.event_hour),
         sqlStr(r.project_id),
+        sqlStr(r.project_name),
         sqlStr(r.deployment_id),
         sqlStr(r.source),
         sqlStr(r.host),
@@ -140,7 +171,7 @@ export async function insertRows(rows: LogRow[]): Promise<void> {
       ].join(", ")})`
   );
 
-  const stmt = `INSERT INTO ${TARGET} VALUES\n  ${values.join(",\n  ")}`;
+  const stmt = `INSERT INTO ${TARGET} (${INSERT_COLUMNS}) VALUES\n  ${values.join(",\n  ")}`;
   await conn.run(stmt);
 }
 

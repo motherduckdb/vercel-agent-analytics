@@ -19,3 +19,13 @@ export function verifyVercelSignature(
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
+
+export function verifyVercelSignatureWithSecrets(
+  rawBody: string | Buffer,
+  headerSignature: string | undefined,
+  secrets: string[]
+): boolean {
+  return secrets.some((secret) =>
+    verifyVercelSignature(rawBody, headerSignature, secret)
+  );
+}
