@@ -1,0 +1,28 @@
+{
+  "name": "vercel-agent-analytics",
+  "version": "0.1.0",
+  "description": "Vercel log drain collector that writes AI bot + agent traffic to MotherDuck",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "generate:rules": "node scripts/generate-rules.mjs",
+    "prebuild": "npm run generate:rules",
+    "build": "tsc --noEmit",
+    "predev": "npm run generate:rules",
+    "dev": "tsx watch src/local-server.ts",
+    "pretypecheck": "npm run generate:rules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.4.4-r.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "yaml": "^2.6.0"
+  }
+}
